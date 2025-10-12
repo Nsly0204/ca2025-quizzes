@@ -122,7 +122,7 @@ uf8_encode:
     sw      s0, 4(sp)
     sw      s1, 8(sp)
     sw      s2, 12(sp)
-    sw      s2, 16(sp)
+    sw      s3, 16(sp)
 # initailization
     mv      s0, a0                          # s0 = value
     add     s1, x0, x0                      # s1 = exponent = 0
