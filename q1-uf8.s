@@ -1,48 +1,54 @@
 .data
-fail_1:   .string "Failed test1: value < 16\n"
-fail_2:   .string "Failed test2: value = 127\n"
-success:  .string "All test passes!\n"
+fail_1:     .string "Failed test: the correct utf-8 code is: "
+fail_2:     .string " \nyour utf-8 code after decoding-encoding is: "
+new_line:   .string " \n"
+success_msg:.string "All tests pass!\n"
 .text
 main:
 #    li      a0, 0x8FFFFFFF
 #    jal     ra, clz
 #    li      a7, 10                 # System call code for exiting the program
 #    ecall                          # Make the exit system call
-    add     s1, x0, x0              # error = s1 = 0
-# test value < 16
-    li      s0, 15
+    addi    s0, x0, 255             # error = s1 = 0
+test_loop:
+    blt     s0, x0, success
     mv      a0, s0
     jal     ra, uf8_decode
     jal     ra, uf8_encode
-    beq     a0, s0, test2
-    # test1 failed
-    addi    s1, s1, 1
-    la      a0, fail_1              # Load the address of the string 
-    li      a7, 4                   # System call code for printing a string
-    ecall                           # Print the string
+    mv      t0, a0
+    beq     t0, s0, test_pass
+    # test failed
+    la      a0, fail_1              # "Failed test: the correct utf-8 code is: "
+    li      a7, 4
+    ecall 
 
-test2:
-    li      s0, 128
-    mv      a0, s0
-    jal     ra, uf8_decode
-    jal     ra, uf8_encode
-    # 
-    li a7, 1                        # System call code for printing an integer
+    mv      a0, s0                  # Move the original input value (X) to a0 for printing
+    li      a7, 1                   # System call code for printing an integer
     ecall                           # Print the integer (X)
 
-    beq     a0, s0, end_main
-    # test 2 failed
-    addi    s1, s1, 1
-    la      a0, fail_2              # Load the address of the string 
-    li      a7, 4                   # System call code for printing a string
-    ecall                           # Print the string
-end_main:
-    bne     x0, s1, Exit
-    la      a0, success             # Load the address of the string 
-    li      a7, 4                   # System call code for printing a string
-    ecall                        
+    la      a0, fail_2              # " \nyour utf-8 code after encoding is: "
+    li      a7, 4
+    ecall 
 
-Exit:
+    mv      a0, t0                  # Move the original input value (X) to a0 for printing
+    li      a7, 1                   # System call code for printing an integer
+    ecall                           # Print the integer (X)
+    la      a0, new_line
+    li      a7, 4
+    ecall
+
+    li      a7, 93                  # ecall: exit
+    li      a0, 1                   # exit code 1
+    ecall
+    
+test_pass:
+    addi    s0, s0, -1              #  --
+    jal     x0, test_loop
+
+success:
+    la      a0, success_msg
+    li      a7, 4
+    ecall
     li      a7, 10                  # System call code for exiting the program
     ecall                           # Make the exit system call
 
