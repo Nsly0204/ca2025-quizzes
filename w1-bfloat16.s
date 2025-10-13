@@ -5,9 +5,18 @@ NaN:            .word   0xFFC00000, 0xFFC0
 normal:         .word   0x40490fd0, 0x4049
 denormal:       .word   0x40000fd0
 
-pass_convert:   .string "Convert Test Passed\n"
-fail_msg:       .string "Test Failed !!!!! \n"
-end_msg:        .string "System Pause"
+add_msg:        .string "Bf16 Add Test "
+muli_msg:       .string "Integer Mul Test "
+mul_msg:        .string "Bf16 Mul Test "
+div_msg:        .string "Bf16 Div Test "
+sqrt_msg:       .string "Bf16 Sqrt Test "
+
+convert_msg:    .string "Convert Test "
+
+pass_msg:       .string "Pass !\n"
+fail_msg:       .string "Failed !!!!! \n"
+start_msg:      .string "=====Test Begin====="
+end_msg:        .string "=====Finished====="
 
 BF16_SIGN_MASK: .word   0x8000
 BF16_EXP_MASK:  .word   0x7F80
@@ -19,30 +28,129 @@ BF16_ZERO:      .word   0x0
 
 .text
 main:
+        la      a0, start_msg             # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string   
+########################################
+add_test:
+        li      a0, 0x4040              # (bf16) 3
+        li      a1, 0x4040              # (bf16) 3
+        jal     ra, bf16_add 
+        mv      s0, a0
 
-
+        la      a0, add_msg             # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string     
+        li      t0, 0x40C0              # (bf16) 6
+        beq     s0, t0, add_pass
+        # fail
+        la      a0, fail_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall
+        jal     x0, muli_test           # goto next test
+add_pass:
+        la      a0, pass_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string     
+########################################
+muli_test:
+        li      a0, 3
+        li      a1, 3
+        jal     ra, int_mul
+        mv      s0, a0
+        
+        la      a0, muli_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string     
+        li      t0, 9
+        beq     s0, t0, muli_pass
+        
+        la      a0, fail_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall
+        jal     x0, mul_test            # goto next test
+muli_pass:
+        la      a0, pass_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string     
+########################################   
 mul_test:
-        li      a0, 0x4040              # 3
-        li      a1, 0x4040              # 3
+        li      a0, 0x4040              # (bf16) 3
+        li      a1, 0x4040              # (bf16) 3
         jal     ra, bf16_mul 
-        li      a7, 10                  # System call code for exiting the program
-        ecall                           # Make the exit system call
+        mv      s0, a0
+        
+        la      a0, mul_msg             # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string     
+        li      t0, 0x4110                # (bf16) 9
+        beq     s0, t0, mul_pass
+        # fail
+        la      a0, fail_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall
+        jal     x0, div_test            # goto next test
+mul_pass:
+        la      a0, pass_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string     
+########################################
 div_test:
-        li      a0, 0x4110              # 9
-        li      a1, 0x4040              # 3
+        li      a0, 0x4110              # (bf16) 9
+        li      a1, 0x4040              # (bf16) 3
         jal     ra, bf16_div
-        li      a7, 10                  # System call code for exiting the program
-        ecall                           # Make the exit system call
+        mv      s0, a0
+
+        la      a0, div_msg             # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string     
+        li      t0, 0x4040              # (bf16) 3
+        beq     s0, t0, div_pass
+        # fail
+        la      a0, fail_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall
+        jal     x0, sqrt_test           # goto next test
+div_pass:
+        la      a0, pass_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string 
+########################################
+sqrt_test:
+        li      a0, 0x4110              # (bf16) 9
+        jal     ra, bf16_sqrt
+        mv      s0, a0
+
+        la      a0, sqrt_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string     
+        li      t0, 0x4040              # (bf16) 3
+        beq     s0, t0, sqrt_pass
+        # fail
+        la      a0, fail_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall
+        jal     x0, convert_test        # goto next test
+sqrt_pass:
+        la      a0, pass_msg            # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string 
+######################################## 
+convert_test:
     # f32_to_bf16 test 
         # load argument
         # s0 = test argument
         la      s0, normal              # s0 = @M[f32]
         lw      s1, 0(s0)               # s1 = f32
         mv      a0, s1                  # passing a0 as argument
-convert_test:
+
         jal     ra, f32_to_bf16         
         mv      t0, a0                  # get return value
         lw      t1, 4(s0)               # get answer
+
+        la      a0, convert_msg         # Load the address of the string 
+        li      a7, 4                   # System call code for printing a string
+        ecall                           # Print the string     
         beq     t0, t1, convert_pass    # if answer equal to return value then exit
 
     #fail message
@@ -51,13 +159,9 @@ convert_test:
         ecall                           # Print the string
         jal     x0, add_test
 convert_pass:
-        la      a0, pass_convert        # Load the address of the string 
+        la      a0, pass_msg            # Load the address of the string 
         li      a7, 4                   # System call code for printing a string
         ecall                           # Print the string
-add_test:
-        li      a0, 1
-        li      a1, 2
-        jal     ra, bf16_add
 
 Exit:
         la      a0, end_msg             # Load the address of the tring ("System Pause")
@@ -427,7 +531,7 @@ result_exp:
     add     t4, s0, s1                  # t4 (result exp) = exp_a + exp_b
     addi    t4, t4, -127                # result exp = exp_a + exp_b - 127
     add     t4, t4, t0                  # result exp = exp_a + exp_b - 127 + adjust_exp
-    # result_mant = (uint32_t) mant_a * mant_b;
+    # t3 = result_mant = (uint32_t) s2 mant_a * s3 mant_b;
     # while(mant_b != 0)
     #   iif(mant_b & 1) result += mant_a
     #   mant_a << 1, mant_b >> 1
@@ -445,7 +549,7 @@ mul_get_result:
     # check result mentissa overflow
     li      t0, 0x8000                  # overflow mask
     and     t0, t0, t3                  # t0 =  0x8000 & t3 (result_mant)
-    beq     t0, x0, mul_result_mant_adjust
+    beq     t0, x0, mul_result_mant_adjust # if 0x8000 & t3 = 0 goto else
     # overflow happened
     srli    t3, t3, 8                   # result_mant >> 8
     andi    t3, t3, 0x7F                # result_mant = (result_mant >> 8) & 0x7F
@@ -684,4 +788,155 @@ end_div:
     lw      s0, 4(sp)
     lw      ra, 0(sp)
     addi    sp, sp, 28
+    ret
+
+########################################
+bf16_sqrt:
+    ####
+    ## input argument
+    # a0 = (bf16) a
+    ## output argument
+    # a0 = (bf16) sqrt(a)
+    ####
+
+    # callee save
+    addi    sp, sp, -20
+    sw      ra, 0(sp)
+    sw      s0, 4(sp)                   # s0 = exponent
+    sw      s1, 8(sp)                   # s1 = mantissa
+    sw      s2, 12(sp)                  # s2 = sign
+    sw      s3, 16(sp)                  # s3 = 0xFF
+
+    li      s3, 0xFF
+# Decomposite a and b into sign / exp / mantissa
+    srli    s0, a0, 7                   # s0 = a >> 7
+    and     s0, s0, s3                  # s0 = exp_a = ((a.bits >> 7) & 0xFF)
+    andi    s1, a0, 0x7F                # s1 = mant_a = a.bits & 0x7F
+    srli    s2, a0, 15                  # s2 = sign a = a >> 15
+
+sqrt_ck_input_neg:
+    bne     s2, x0, sqrt_ret_nan        # sqrt(neg) = nan
+sqrt_ck_input_FF:
+    bne     s0, s3, sqrt_ck_input_0
+    jal     x0, end_sqrt                # a is either +inf or nan, return a
+sqrt_ck_input_0:
+    bne     s0, x0, sqrt_ck_input_denormal
+    bne     s1, x0, sqrt_ck_input_denormal
+    jal     sqrt_ret_zero
+sqrt_ck_input_denormal:
+    beq     s0, x0, sqrt_ret_zero       # sqrt of denormal number is underflow 
+
+###
+# s0 = exponent     t3 = low
+# s1 = mantissa     t4 = high
+# s2 = sign         t5 = result_mant
+# s3 = 0xFF         t6 = new_exp
+sqrt_main:
+    addi    s0, s0, -127                # exp = exp - BF16_EXP_BIAS
+    ori     s1, s1, 0x80                # get full mantissa with implicit 1
+    andi    t0, s0, 0x1                 # t0 = e & 1
+    beq     t0, x0, handle_even_exp
+handle_odd_exp:
+    slli    s1, s1, 1                   # m <<= 1
+    addi    t6, s0, -1                  # new_exp = (e - 1)
+    srli    t6, t6, 1                   # new_exp = (e - 1) >> 1
+    addi    t6, t6, 127                 # new_exp = ((e - 1) >> 1) + BF16_EXP_BIAS
+    jal     x0, true_sqrt
+handle_even_exp:
+    add     t6, s0, x0                  # new_exp = e 
+    srli    t6, t6, 1                   # new_exp = e >> 1
+    addi    t6, t6, 127                 # new_exp = (e >> 1) + BF16_EXP_BIAS
+true_sqrt:
+    li      t3, 90
+    li      t4, 256
+    li      t5, 0x10                    # defualt answer = 1.0
+binary_search:
+# t1 = mid      s0 = e
+# t2 = sq       s1 = m
+# t3 = low  t4 = high t5 = result_mant
+    # end if high < low
+    blt     t4, t3, sqrt_normalized_result 
+    add     t1, t3, t4                  # t0 (mid) = low + high
+    srli    t1, t1, 1                   #  t0 (mid) = (low + high) / 2
+    # a0 = mid, a1 = mid, call mul
+    # a0 = mid*mid
+    mv      a0, t1
+    mv      a1, t1
+    
+    jal     ra, int_mul
+    # sq = (mid * mid) / 128
+    srli    t2, a0, 7
+
+    blt     s1, t2, sqrt_too_big        # if m < sq, jump
+    mv      t5, t1                      # result_mant = mid
+    addi    t3, t1, 1                   # low = mid + 1
+    jal     x0, binary_search
+sqrt_too_big:
+    addi    t4, t1, -1                  # high = mid - 1
+    jal     x0, binary_search
+sqrt_normalized_result:
+    li      t0, 256
+    blt     t5, t0, sqer_borrow_exp     # if (result < 256) check if need to borrow exp
+    srli    t5, t5, 1                   # result >>= 1
+    addi    t6, t6, 1                   # new_exp++
+    jal     x0, remove_result_mant_one
+sqer_borrow_exp:
+    li      t0, 128
+    li      t1, 1
+    bge     t5, t0, remove_result_mant_one # if (256 > result >= 128), don't need to adjust
+sqrt_exp_adjust_loop:
+    # t0 = 128
+    # t1 = 1
+    bge     t5, t0, remove_result_mant_one
+    bge     t1, t6, remove_result_mant_one
+    slli    t5, t5, 1                   # result <<= 1
+    addi    t6, t6, -1                  # new_exp--
+    jal     x0, sqrt_exp_adjust_loop
+remove_result_mant_one:
+    andi    t5, t5, 0x7F                # new_mant = result & 0x7F
+sqrt_result_overflow:
+    bge     t6, s3, sqrt_ret_inf
+sqrt_result_underflow:
+    bge     x0, t6, sqrt_ret_zero
+sqrt_get_result:
+    and     a0, t6, s3                  # a0 = new_exp & 0xFF
+    slli    a0, a0, 7                   # a0 = (new_exp & 0xFF) << 7
+    or      a0, a0, t5                  # a0 = ((new_exp & 0xFF) << 7) | new_mant
+    jal     x0, end_sqrt
+sqrt_ret_inf:
+    li      a0, 0x7F80
+    jal     x0, end_sqrt
+sqrt_ret_zero:
+    lw      a0, BF16_ZERO
+    jal     x0, end_sqrt
+sqrt_ret_nan:
+    lw      a0, BF16_NAN
+    jal     x0, end_sqrt
+end_sqrt:
+    lw      s3, 16(sp)
+    lw      s2, 12(sp)
+    lw      s1, 8(sp)
+    lw      s0, 4(sp)
+    lw      ra, 0(sp)
+    addi    sp, sp, 20
+    ret
+########################################
+## intput
+# a0 = a (integer)
+# a1 = b (integer)
+## output
+# a0 = a * b
+int_mul:
+    add     t0, x0, x0                  # t0 = result = 0
+int_mul_loop:
+    beq     x0, a1, end_int_mul         # while (mant_b != 0)
+    andi    t2, a1, 1                   # t2 = mant_b & 1 = lsb bit
+    beq     x0, t2, int_mul_skip        # if lsb bit of mant_b is 0, do not add to result
+    add     t0, t0, a0                  # result += (shifted) mant_a
+int_mul_skip:
+    srli    a1, a1, 1                   # mant_b >> 1
+    slli    a0, a0 ,1                   # mant_a << 1
+    jal     x0, int_mul_loop            # go back to while
+end_int_mul:
+    mv      a0, t0
     ret
